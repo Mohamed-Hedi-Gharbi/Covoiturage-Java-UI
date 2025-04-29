@@ -321,35 +321,91 @@ public class ConsoleUI {
     }
 
     /**
-     * Méthode améliorée pour lire un mot de passe sécurisé.
-     * Si nous sommes dans un IDE, utilise une fenêtre Swing pour masquer le mot de passe.
+     * Méthode améliorée pour lire un mot de passe sécurisé avec une interface utilisateur professionnelle.
+     * Utilise une fenêtre Swing personnalisée pour masquer le mot de passe.
      *
      * @param prompt Le message à afficher avant la saisie
      * @return Le mot de passe saisi
      */
     public String lireMotDePasseSecurise(String prompt) {
-
-        // Utiliser une fenêtre de dialogue Swing pour les IDEs
         try {
             // Afficher un message dans la console
             System.out.println("Une fenêtre de dialogue a été ouverte pour saisir le mot de passe en toute sécurité.");
 
-            // Créer une boîte de dialogue pour la saisie du mot de passe
+            // Créer un panel avec une disposition plus professionnelle
             JPanel panel = new JPanel();
-            JLabel label = new JLabel(prompt);
-            JPasswordField passwordField = new JPasswordField(20);
-            panel.add(label);
-            panel.add(passwordField);
+            panel.setLayout(new BorderLayout(10, 10));
+            panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
+            // Icône pour la sécurité
+            Icon lockIcon = UIManager.getIcon("OptionPane.warningIcon");
+            JLabel iconLabel = new JLabel(lockIcon);
+            iconLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 10));
+
+            // Panel pour le titre et le message
+            JPanel headerPanel = new JPanel();
+            headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));
+
+            // Titre avec une police plus grande et en gras
+            JLabel titleLabel = new JLabel("Authentification Sécurisée");
+            titleLabel.setFont(new Font(titleLabel.getFont().getName(), Font.BOLD, 16));
+            titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            headerPanel.add(titleLabel);
+            headerPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+
+            // Message d'explication
+            JLabel messageLabel = new JLabel("Veuillez saisir votre mot de passe pour vous connecter");
+            messageLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            headerPanel.add(messageLabel);
+            headerPanel.add(Box.createRigidArea(new Dimension(0, 15)));
+
+            // Panel pour les champs de saisie
+            JPanel inputPanel = new JPanel();
+            inputPanel.setLayout(new GridLayout(1, 2, 5, 5));
+
+            // Label pour le champ de mot de passe
+            JLabel promptLabel = new JLabel(prompt);
+            promptLabel.setFont(new Font(promptLabel.getFont().getName(), Font.BOLD, 12));
+
+            // Champ de mot de passe amélioré
+            JPasswordField passwordField = new JPasswordField(15);
+            passwordField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(122, 138, 153)),
+                    BorderFactory.createEmptyBorder(5, 5, 5, 5)));
+
+            inputPanel.add(promptLabel);
+            inputPanel.add(passwordField);
+
+            // Ajouter tous les éléments au panel principal
+            JPanel topPanel = new JPanel(new BorderLayout());
+            topPanel.add(iconLabel, BorderLayout.WEST);
+            topPanel.add(headerPanel, BorderLayout.CENTER);
+
+            panel.add(topPanel, BorderLayout.NORTH);
+            panel.add(inputPanel, BorderLayout.CENTER);
+
+            // Style personnalisé pour les boutons
+            UIManager.put("Button.background", new Color(59, 89, 152));
+            UIManager.put("Button.foreground", Color.WHITE);
+            UIManager.put("Button.font", new Font("Dialog", Font.BOLD, 12));
+
+            // Afficher la boîte de dialogue sans essayer de définir le bouton par défaut
             int option = JOptionPane.showConfirmDialog(
-                    null, panel, "Saisie sécurisée du mot de passe",
+                    null, panel, "Application de Covoiturage - Connexion",
                     JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            // Restaurer les valeurs par défaut de l'UI
+            UIManager.put("Button.background", null);
+            UIManager.put("Button.foreground", null);
+            UIManager.put("Button.font", null);
 
             if (option == JOptionPane.OK_OPTION) {
                 char[] password = passwordField.getPassword();
                 String result = new String(password);
+
                 // Effacer le tableau de caractères pour la sécurité
                 Arrays.fill(password, ' ');
+
                 return result;
             } else {
                 // L'utilisateur a annulé, retourner une chaîne vide
