@@ -5,6 +5,7 @@ import covoiturage.model.Conducteur;
 import covoiturage.model.Trajet;
 import covoiturage.model.Utilisateur;
 import covoiturage.service.*;
+import covoiturage.ui.ConsoleUI;
 import covoiturage.ui.validator.InputValidator;
 
 import java.util.List;
@@ -18,13 +19,15 @@ public class AdminController {
     private ConducteurService conducteurService;
     private TrajetService trajetService;
     private Scanner scanner;
+    private ConsoleUI consoleUI;
 
-    public AdminController(Scanner scanner) {
+    public AdminController(Scanner scanner, ConsoleUI consoleUI) {
         this.adminService = ServiceFactory.getAdminService();
         this.utilisateurService = ServiceFactory.getUtilisateurService();
         this.conducteurService = ServiceFactory.getConducteurService();
         this.trajetService = ServiceFactory.getTrajetService();
         this.scanner = scanner;
+        this.consoleUI = consoleUI;
     }
 
     public Optional<Administrateur> connexion() {
@@ -33,8 +36,8 @@ public class AdminController {
         System.out.print("Email : ");
         String email = scanner.nextLine().trim();
 
-        System.out.print("Mot de passe : ");
-        String motDePasse = scanner.nextLine().trim();
+        // Utiliser la méthode sécurisée via ConsoleUI
+        String motDePasse = consoleUI.lireMotDePasseSecurise("Mot de passe : ");
 
         try {
             Optional<Administrateur> admin = adminService.authentifier(email, motDePasse);
@@ -50,6 +53,7 @@ public class AdminController {
             return Optional.empty();
         }
     }
+
 
     public void gererUtilisateurs() {
         System.out.println("\n=== GESTION DES UTILISATEURS ===");

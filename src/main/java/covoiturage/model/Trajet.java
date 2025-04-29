@@ -1,5 +1,8 @@
 package covoiturage.model;
 
+import covoiturage.model.enums.StatutReservation;
+import covoiturage.service.ServiceFactory;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -153,11 +156,21 @@ public class Trajet {
     }
 
     public int calculerPlacesRestantes() {
-        int placesReservees = reservations.stream()
-                .filter(r -> !r.isAnnule())
-                .mapToInt(Reservation::getNbPlaces)
-                .sum();
-        return nbPlacesDisponibles - placesReservees;
+        int placesReservees = 0;
+
+        // Récupérer toutes les réservations pour ce trajet
+        List<Reservation> reservations = ServiceFactory.getReservationService().getReservationsByTrajet(this.getId());
+
+        // Compter les places des réservations confirmées et en attente
+        for (Reservation reservation : reservations) {
+            if (!reservation.isAnnule() &&
+                    (reservation.getStatut() == StatutReservation.CONFIRMEE ||
+                            reservation.getStatut() == StatutReservation.EN_ATTENTE)) {
+                placesReservees += reservation.getNbPlaces();
+            }
+        }
+
+        return this.getNbPlacesDisponibles() - placesReservees;
     }
 
     @Override

@@ -20,8 +20,8 @@ import java.util.stream.Collectors;
  */
 public class TrajetController {
     // Constantes pour la mise en forme
-    private static final String LIGNE_SEPARATION = "══════════════════════════════════════════════════════════════════════════════";
-    private static final String SOUS_LIGNE = "──────────────────────────────────────────────────────────────────────────────";
+    private static final String LIGNE_SEPARATION = "══════════════════════════════════════════════════════════════════════════════════════════════════════";
+    private static final String SOUS_LIGNE = "──────────────────────────────────────────────────────────────────────────────────────────────────────";
 
     private TrajetService trajetService;
     private Scanner scanner;
@@ -75,67 +75,144 @@ public class TrajetController {
             return;
         }
 
-        afficherListeTrajets(trajets);
+        afficherListeTrajetsPaginee(trajets);
     }
 
     /**
-     * Affiche une liste de trajets formatée.
+     * Affiche une liste de trajets formatée avec pagination.
      * @param trajets La liste des trajets à afficher
      */
-    public void afficherListeTrajets(List<Trajet> trajets) {
-        // Constantes pour la mise en forme
-        final String LINE_TOP = "┌─────┬─────────────────┬─────────────────┬──────────────────────┬──────────────┬────────┬────────────────────────┐";
-        final String LINE_MID = "├─────┼─────────────────┼─────────────────┼──────────────────────┼──────────────┼────────┼────────────────────────┤";
-        final String LINE_BOT = "└─────┴─────────────────┴─────────────────┴──────────────────────┴──────────────┴────────┴────────────────────────┘";
-        final String VERTICAL = "│";
+    public void afficherListeTrajetsPaginee(List<Trajet> trajets) {
+        final int TRAJETS_PAR_PAGE = 5;
+        int pageActuelle = 0;
+        int nombrePages = (int) Math.ceil((double) trajets.size() / TRAJETS_PAR_PAGE);
 
-        System.out.println("\n" + "═".repeat(90));
-        System.out.println(" ".repeat(40) + "LISTE DES TRAJETS");
-        System.out.println("─".repeat(90));
+        boolean continuer = true;
+        while (continuer) {
+            // Calculer l'intervalle à afficher
+            int debut = pageActuelle * TRAJETS_PAR_PAGE;
+            int fin = Math.min(debut + TRAJETS_PAR_PAGE, trajets.size());
 
-        // Affichage de l'en-tête du tableau
-        System.out.println(LINE_TOP);
-        System.out.printf("%s %-3s %s %-15s %s %-15s %s %-20s %s %-12s %s %-6s %s %-22s %s%n",
-                VERTICAL, "ID", VERTICAL, "DÉPART", VERTICAL, "ARRIVÉE", VERTICAL,
-                "DATE/HEURE", VERTICAL, "PRIX", VERTICAL, "PLACES", VERTICAL, "CONDUCTEUR", VERTICAL);
-        System.out.println(LINE_MID);
+            // Afficher l'en-tête de la page
+            System.out.println("\n" + LIGNE_SEPARATION);
+            System.out.println("                              LISTE DES TRAJETS");
+            System.out.println(SOUS_LIGNE);
 
-        // Contenu du tableau
-        for (Trajet trajet : trajets) {
-            String conducteurInfo = trajet.getConducteur() != null ?
-                    trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom() : "N/A";
+            // Afficher l'en-tête du tableau
+            System.out.println("┌─────┬───────────────────────┬───────────────────────┬──────────────────────┬──────────────┬────────┬────────────────────────┐");
+            System.out.printf("│ %-3s │ %-21s │ %-21s │ %-20s │ %-12s │ %-6s │ %-22s │%n",
+                    "ID", "DÉPART", "ARRIVÉE", "DATE/HEURE", "PRIX", "PLACES", "CONDUCTEUR");
+            System.out.println("├─────┼───────────────────────┼───────────────────────┼──────────────────────┼──────────────┼────────┼────────────────────────┤");
 
-            String statusMark = trajet.isEstAnnule() ? " ⚠️" : "";
-            String dateHeureFormattee = trajet.getDateDepart().format(formatter);
-            String prixFormatted = String.format("%.2f Dinars", trajet.getPrix());
+            // Afficher les trajets pour cette page
+            for (int i = debut; i < fin; i++) {
+                Trajet trajet = trajets.get(i);
+                String conducteurInfo = trajet.getConducteur() != null ?
+                        trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom() : "N/A";
 
-            System.out.printf("%s %-3d %s %-15s %s %-15s %s %-20s %s %-12s %s %-6d %s %-22s %s%n",
-                    VERTICAL, trajet.getId(), VERTICAL,
-                    limiterTexte(trajet.getLieuDepart(), 15), VERTICAL,
-                    limiterTexte(trajet.getLieuArrivee(), 15), VERTICAL,
-                    dateHeureFormattee, VERTICAL,
-                    prixFormatted, VERTICAL,
-                    trajet.calculerPlacesRestantes(), VERTICAL,
-                    limiterTexte(conducteurInfo + statusMark, 22), VERTICAL);
+                String statusMark = trajet.isEstAnnule() ? " ⚠️" : "";
+                System.out.printf("│ %-3d │ %-21s │ %-21s │ %-20s │ %-12s │ %-6d │ %-22s │%n",
+                        trajet.getId(),
+                        limiterTexte(trajet.getLieuDepart(), 21),
+                        limiterTexte(trajet.getLieuArrivee(), 21),
+                        trajet.getDateDepart().format(formatter),
+                        String.format("%.2f Dinars", trajet.getPrix()),
+                        trajet.calculerPlacesRestantes(),
+                        limiterTexte(conducteurInfo + statusMark, 22));
+            }
+
+            System.out.println("└─────┴───────────────────────┴───────────────────────┴──────────────────────┴──────────────┴────────┴────────────────────────┘");
+
+            // Légende et statistiques
+            if (trajets.stream().anyMatch(Trajet::isEstAnnule)) {
+                System.out.println("\n⚠️ : Trajet annulé");
+            }
+
+            int totalTrajets = trajets.size();
+            int trajetsActifs = (int) trajets.stream().filter(t -> !t.isEstAnnule()).count();
+            System.out.println("\n📊 Statistiques: " + totalTrajets + " trajet(s) au total, dont " + trajetsActifs + " actif(s)");
+
+            // Section pour les textes tronqués
+            boolean hasTruncatedText = false;
+            for (int i = debut; i < fin; i++) {
+                Trajet trajet = trajets.get(i);
+                if (trajet.getLieuDepart().length() > 21 || trajet.getLieuArrivee().length() > 21 ||
+                        (trajet.getConducteur() != null &&
+                                (trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom()).length() > 22)) {
+
+                    if (!hasTruncatedText) {
+                        System.out.println("\nTextes complets (pour les entrées tronquées) :");
+                        hasTruncatedText = true;
+                    }
+
+                    System.out.println("\nTrajet #" + trajet.getId() + " :");
+
+                    if (trajet.getLieuDepart().length() > 21) {
+                        System.out.println("  • Départ: " + trajet.getLieuDepart());
+                    }
+
+                    if (trajet.getLieuArrivee().length() > 21) {
+                        System.out.println("  • Arrivée: " + trajet.getLieuArrivee());
+                    }
+
+                    if (trajet.getConducteur() != null &&
+                            (trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom()).length() > 22) {
+                        System.out.println("  • Conducteur: " + trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom());
+                    }
+                }
+            }
+
+            // Options de navigation
+            System.out.println("\nOptions :");
+            if (pageActuelle > 0) System.out.println("P - Page précédente");
+            if (pageActuelle < nombrePages - 1) System.out.println("N - Page suivante");
+            System.out.println("D - Voir les détails d'un trajet");
+            System.out.println("Q - Retour");
+
+            System.out.print("\n➤ Votre choix : ");
+            String choix = scanner.nextLine().trim().toUpperCase();
+
+            switch (choix) {
+                case "P":
+                    if (pageActuelle > 0) pageActuelle--;
+                    break;
+                case "N":
+                    if (pageActuelle < nombrePages - 1) pageActuelle++;
+                    break;
+                case "D":
+                    System.out.print("Entrez l'ID du trajet : ");
+                    String idStr = scanner.nextLine().trim();
+                    if (InputValidator.isValidInteger(idStr)) {
+                        Long trajetId = Long.parseLong(idStr);
+                        afficherDetailTrajet(trajetId);
+                    } else {
+                        afficherMessageErreur("ID invalide.");
+                        System.out.print("Appuyez sur Entrée pour continuer...");
+                        scanner.nextLine();
+                    }
+                    break;
+                case "Q":
+                    continuer = false;
+                    break;
+                default:
+                    afficherMessageErreur("Option invalide.");
+                    System.out.print("Appuyez sur Entrée pour continuer...");
+                    scanner.nextLine();
+                    break;
+            }
         }
-
-        System.out.println(LINE_BOT);
-
-        // Légende et Statistiques
-        if (trajets.stream().anyMatch(Trajet::isEstAnnule)) {
-            System.out.println("\n⚠️  : Trajet annulé par le conducteur");
-        }
-
-        int totalTrajets = trajets.size();
-        int trajetsActifs = (int) trajets.stream().filter(t -> !t.isEstAnnule()).count();
-        System.out.println("\n📊 Statistiques: " + totalTrajets + " trajet(s) au total, dont " + trajetsActifs + " actif(s)");
-
-        // Pause pour permettre à l'utilisateur de lire les informations
-        System.out.print("\nAppuyez sur Entrée pour continuer...");
-        scanner.nextLine();
     }
 
-    // Méthode utilitaire pour limiter la longueur du texte
+    /**
+     * Méthode de compatibilité pour l'ancienne interface, redirige vers la version paginée
+     */
+    public void afficherListeTrajets(List<Trajet> trajets) {
+        afficherListeTrajetsPaginee(trajets);
+    }
+
+    /**
+     * Limite la longueur d'un texte, en ajoutant "..." si nécessaire
+     */
     private String limiterTexte(String texte, int longueurMax) {
         if (texte == null) return "";
         if (texte.length() <= longueurMax) return texte;
@@ -144,97 +221,226 @@ public class TrajetController {
 
 
     /**
-     * Affiche les détails d'un trajet spécifique.
+     * Affiche les détails d'un trajet avec un design moderne et professionnel.
      * @param trajetId L'identifiant du trajet à afficher
      */
     public void afficherDetailTrajet(Long trajetId) {
         Optional<Trajet> optTrajet = trajetService.getTrajetById(trajetId);
 
         if (optTrajet.isEmpty()) {
-            System.out.println("\n⚠️  Trajet non trouvé.");
+            afficherMessageErreur("Trajet non trouvé.");
             return;
         }
 
         Trajet trajet = optTrajet.get();
 
-        // Largeur fixe pour un meilleur alignement
-        final int LARGEUR = 70;
-        final String LINE_TOP = "┌" + "─".repeat(LARGEUR - 2) + "┐";
-        final String LINE_MID = "├" + "─".repeat(LARGEUR - 2) + "┤";
-        final String LINE_BOT = "└" + "─".repeat(LARGEUR - 2) + "┘";
-        final String VERTICAL = "│";
+        // Dimensions et styles
+        final int LARGEUR_TOTALE = 70;  // Largeur fixe pour toutes les lignes
+        final String RESET = "\u001B[0m";
+        final String BOLD = "\u001B[1m";
+        final String BLUE = "\u001B[34m";
+        final String CYAN = "\u001B[36m";
+        final String GREEN = "\u001B[32m";
+        final String YELLOW = "\u001B[33m";
 
-        String statut = trajet.isEstAnnule() ? " [ANNULÉ]" : "";
-        String titre = "DÉTAILS DU TRAJET" + statut;
-        int espaces = (LARGEUR - titre.length() - 2) / 2;
-        String titreFormate = VERTICAL + " ".repeat(espaces) + titre + " ".repeat(LARGEUR - titre.length() - espaces - 2) + VERTICAL;
+        // Caractères pour les bordures avec style double-ligne pour un look plus élégant
+        final String HORIZ = "═";
+        final String VERT = "║";
+        final String COIN_HG = "╔";
+        final String COIN_HD = "╗";
+        final String COIN_BG = "╚";
+        final String COIN_BD = "╝";
+        final String INTER_G = "╠";
+        final String INTER_D = "╣";
+        final String INTER_H = "╦";
+        final String INTER_B = "╩";
+        final String INTER_CROSS = "╬";
 
-        System.out.println("\n" + LINE_TOP);
-        System.out.println(titreFormate);
-        System.out.println(LINE_MID);
+        // Construction des lignes de cadre avec largeur fixe
+        String ligneHaut = COIN_HG + HORIZ.repeat(LARGEUR_TOTALE - 2) + COIN_HD;
+        String ligneMilieu = INTER_G + HORIZ.repeat(LARGEUR_TOTALE - 2) + INTER_D;
+        String ligneBas = COIN_BG + HORIZ.repeat(LARGEUR_TOTALE - 2) + COIN_BD;
 
-        // Informations principales
-        afficherLigneDetail(VERTICAL, "ID", String.valueOf(trajet.getId()), LARGEUR);
-        afficherLigneDetail(VERTICAL, "Départ", trajet.getLieuDepart(), LARGEUR);
-        afficherLigneDetail(VERTICAL, "Arrivée", trajet.getLieuArrivee(), LARGEUR);
-        afficherLigneDetail(VERTICAL, "Date et Heure", trajet.getDateDepart().format(formatter), LARGEUR);
-        afficherLigneDetail(VERTICAL, "Prix", String.format("%.2f Dinars", trajet.getPrix()), LARGEUR);
-        afficherLigneDetail(VERTICAL, "Places disponibles", trajet.calculerPlacesRestantes() + "/" + trajet.getNbPlacesDisponibles(), LARGEUR);
+        // En-tête avec titre et date du jour - Calcul précis des espaces
+        System.out.println("\n" + ligneHaut);
+
+        // Titre du système avec espaces précis pour alignement
+        String systemTitle = BOLD + BLUE + " SYSTÈME DE COVOITURAGE " + RESET;
+        int systemTitleLength = " SYSTÈME DE COVOITURAGE ".length(); // Sans les codes ANSI
+        int systemRightSpace = LARGEUR_TOTALE - 2 - systemTitleLength;
+
+        System.out.println(VERT + systemTitle + " ".repeat(systemRightSpace) + VERT);
+        System.out.println(ligneMilieu);
+
+        // Titre du trajet centré avec précision
+        String titreTrajet = "DÉTAILS DU TRAJET #" + trajet.getId();
+        int espaceGauche = (LARGEUR_TOTALE - 2 - titreTrajet.length()) / 2;
+        int espaceDroite = LARGEUR_TOTALE - 2 - titreTrajet.length() - espaceGauche;
+
+        System.out.println(VERT + " ".repeat(espaceGauche) + BOLD + CYAN + titreTrajet + RESET + " ".repeat(espaceDroite) + VERT);
+        System.out.println(ligneMilieu);
+
+        // Section Informations de base - Alignement précis
+        String infoTitle = BOLD + " INFORMATIONS ITINÉRAIRE" + RESET;
+        int infoTitleLength = " INFORMATIONS ITINÉRAIRE".length(); // Sans les codes ANSI
+        int infoRightSpace = LARGEUR_TOTALE - 2 - infoTitleLength;
+
+        System.out.println(VERT + infoTitle + " ".repeat(infoRightSpace) + VERT);
+        System.out.println(ligneMilieu);
+
+        // Détails du trajet - Gestion précise de la longueur pour alignement
+        afficherDetailPrecis("Départ", trajet.getLieuDepart(), LARGEUR_TOTALE, VERT, GREEN);
+        afficherDetailPrecis("Arrivée", trajet.getLieuArrivee(), LARGEUR_TOTALE, VERT, GREEN);
+        afficherDetailPrecis("Date et Heure", trajet.getDateDepart().format(formatter), LARGEUR_TOTALE, VERT, YELLOW);
+
+        // Section prix et disponibilité
+        System.out.println(ligneMilieu);
+
+        String tarifTitle = BOLD + " TARIFS ET DISPONIBILITÉ" + RESET;
+        int tarifTitleLength = " TARIFS ET DISPONIBILITÉ".length(); // Sans les codes ANSI
+        int tarifRightSpace = LARGEUR_TOTALE - 2 - tarifTitleLength;
+
+        System.out.println(VERT + tarifTitle + " ".repeat(tarifRightSpace) + VERT);
+        System.out.println(ligneMilieu);
+
+        afficherDetailPrecis("Prix", String.format("%.2f Dinars", trajet.getPrix()), LARGEUR_TOTALE, VERT, YELLOW);
+
+        // Affichage des places avec indication visuelle
+        String placesInfo = trajet.calculerPlacesRestantes() + "/" + trajet.getNbPlacesDisponibles();
+        String statusPlaces;
+
+        if (trajet.calculerPlacesRestantes() == 0) {
+            statusPlaces = "COMPLET";
+        } else if (trajet.calculerPlacesRestantes() < trajet.getNbPlacesDisponibles() / 3) {
+            statusPlaces = "PRESQUE COMPLET";
+        } else {
+            statusPlaces = "DISPONIBLE";
+        }
+
+        afficherStatusPrecis("Places", placesInfo, statusPlaces, LARGEUR_TOTALE, VERT);
 
         // Section conducteur
+        System.out.println(ligneMilieu);
+
+        String conducteurTitle = BOLD + " INFORMATIONS CONDUCTEUR" + RESET;
+        int conducteurTitleLength = " INFORMATIONS CONDUCTEUR".length(); // Sans les codes ANSI
+        int conducteurRightSpace = LARGEUR_TOTALE - 2 - conducteurTitleLength;
+
+        System.out.println(VERT + conducteurTitle + " ".repeat(conducteurRightSpace) + VERT);
+        System.out.println(ligneMilieu);
+
         if (trajet.getConducteur() != null) {
-            System.out.println(LINE_MID);
-            String titreConducteur = "INFORMATIONS CONDUCTEUR";
-            int espacesConducteur = (LARGEUR - titreConducteur.length() - 2) / 2;
-            System.out.println(VERTICAL + " ".repeat(espacesConducteur) + titreConducteur + " ".repeat(LARGEUR - titreConducteur.length() - espacesConducteur - 2) + VERTICAL);
-            System.out.println(LINE_MID);
-
             String nomComplet = trajet.getConducteur().getPrenom() + " " + trajet.getConducteur().getNom();
-            afficherLigneDetail(VERTICAL, "Conducteur", nomComplet, LARGEUR);
-            afficherLigneDetail(VERTICAL, "Téléphone", trajet.getConducteur().getTelephone(), LARGEUR);
-            afficherLigneDetail(VERTICAL, "Véhicule", trajet.getConducteur().getVehiculeInfo(), LARGEUR);
+            afficherDetailPrecis("Conducteur", nomComplet, LARGEUR_TOTALE, VERT, CYAN);
+            afficherDetailPrecis("Téléphone", trajet.getConducteur().getTelephone(), LARGEUR_TOTALE, VERT, CYAN);
+            afficherDetailPrecis("Véhicule", trajet.getConducteur().getVehiculeInfo(), LARGEUR_TOTALE, VERT, CYAN);
+        } else {
+            afficherDetailPrecis("Information", "Conducteur non disponible", LARGEUR_TOTALE, VERT, CYAN);
         }
 
-        // Message d'annulation si nécessaire
-        if (trajet.isEstAnnule()) {
-            System.out.println(LINE_MID);
-            String msgAnnulation = "⚠️  Ce trajet a été annulé par le conducteur";
-            int espacesAnnulation = (LARGEUR - msgAnnulation.length() - 2) / 2;
-            System.out.println(VERTICAL + " ".repeat(espacesAnnulation) + msgAnnulation + " ".repeat(LARGEUR - msgAnnulation.length() - espacesAnnulation - 2) + VERTICAL);
-        }
+        // Pied de page avec instructions
+        System.out.println(ligneMilieu);
+        String instructions = "Appuyez sur Entrée pour continuer";
+        espaceGauche = (LARGEUR_TOTALE - 2 - instructions.length()) / 2;
+        espaceDroite = LARGEUR_TOTALE - 2 - instructions.length() - espaceGauche;
 
-        System.out.println(LINE_BOT);
+        System.out.println(VERT + " ".repeat(espaceGauche) + BOLD + instructions + RESET + " ".repeat(espaceDroite) + VERT);
+        System.out.println(ligneBas);
 
-        // Pause pour permettre à l'utilisateur de lire les informations
-        System.out.print("\nAppuyez sur Entrée pour continuer...");
+        // Attendre que l'utilisateur appuie sur Entrée
         scanner.nextLine();
     }
 
-    // Méthode utilitaire pour afficher une ligne avec label et valeur
-    private void afficherLigneDetail(String vertical, String label, String valeur, int largeurTotale) {
-        // Calcul pour garantir l'alignement
-        int largeurDisponible = largeurTotale - 4; // Moins les caractères verticaux et espaces
-        int largeurLabel = 20; // Largeur fixe pour le label
+    /**
+     * Affiche une ligne de détail avec label et valeur, en assurant un alignement parfait.
+     * Cette méthode calcule précisément les espaces en tenant compte des codes ANSI.
+     *
+     * @param label Le label à afficher
+     * @param valeur La valeur à afficher
+     * @param largeurTotale Largeur totale du cadre
+     * @param bordure Caractère de bordure
+     * @param couleurValeur Code ANSI pour la couleur de la valeur
+     */
+    private void afficherDetailPrecis(String label, String valeur, int largeurTotale, String bordure, String couleurValeur) {
+        final String RESET = "\u001B[0m";
+        final String BOLD = "\u001B[1m";
 
-        if (largeurLabel > largeurDisponible / 2) {
-            largeurLabel = largeurDisponible / 3;
-        }
+        // Calcul de longueur sans les caractères de formatage
+        String texteBrut = label + " : " + valeur;
+        int longueurTexte = texteBrut.length();
 
-        int largeurValeur = largeurDisponible - largeurLabel;
+        // Construction de la ligne avec largeur fixe garantie
+        StringBuilder ligne = new StringBuilder(bordure + " ");
 
-        // Formatage de la ligne
-        String labelFormate = String.format("%-" + largeurLabel + "s", label);
+        // Ajouter le label en gras
+        ligne.append(BOLD).append(label).append(RESET).append(" : ");
 
-        // Gestion du texte trop long pour la valeur
-        String valeurFormatee;
-        if (valeur.length() > largeurValeur) {
-            valeurFormatee = valeur.substring(0, largeurValeur - 3) + "...";
+        // Ajouter la valeur en couleur
+        ligne.append(couleurValeur).append(valeur).append(RESET);
+
+        // Calculer l'espace nécessaire pour atteindre la bordure droite
+        int espaceRestant = largeurTotale - 3 - longueurTexte; // -3 pour bordure gauche + espace + bordure droite
+        ligne.append(" ".repeat(espaceRestant));
+
+        // Ajouter la bordure droite
+        ligne.append(bordure);
+
+        System.out.println(ligne.toString());
+    }
+
+    /**
+     * Affiche une ligne avec label, valeur et statut, en assurant un alignement parfait.
+     *
+     * @param label Le label à afficher
+     * @param valeur La valeur à afficher
+     * @param status Le statut à afficher (sera coloré selon sa valeur)
+     * @param largeurTotale Largeur totale du cadre
+     * @param bordure Caractère de bordure
+     */
+    private void afficherStatusPrecis(String label, String valeur, String status, int largeurTotale, String bordure) {
+        final String RESET = "\u001B[0m";
+        final String BOLD = "\u001B[1m";
+        final String GREEN = "\u001B[32m";
+        final String YELLOW = "\u001B[33m";
+        final String RED = "\u001B[31m";
+
+        // Sélection de la couleur en fonction du statut
+        String couleurStatus;
+        if (status.equals("DISPONIBLE")) {
+            couleurStatus = GREEN;
+        } else if (status.equals("PRESQUE COMPLET")) {
+            couleurStatus = YELLOW;
         } else {
-            valeurFormatee = valeur;
+            couleurStatus = RED;
         }
 
-        System.out.printf("%s %-" + largeurLabel + "s : %-" + largeurValeur + "s %s%n",
-                vertical, labelFormate, valeurFormatee, vertical);
+        // Calculer la longueur totale du texte brut (sans les codes ANSI)
+        int longueurLabel = label.length() + 3; // +3 pour " : "
+        int longueurValeur = valeur.length();
+        int longueurStatus = status.length() + 2; // +2 pour []
+
+        // Calculer l'espace entre la valeur et le statut
+        int espaceIntermediaire = largeurTotale - 3 - longueurLabel - longueurValeur - longueurStatus;
+
+        // Construction de la ligne avec alignement précis
+        StringBuilder ligne = new StringBuilder(bordure + " ");
+
+        // Ajouter le label en gras
+        ligne.append(BOLD).append(label).append(RESET).append(" : ");
+
+        // Ajouter la valeur
+        ligne.append(YELLOW).append(valeur).append(RESET);
+
+        // Ajouter l'espace intermédiaire
+        ligne.append(" ".repeat(espaceIntermediaire));
+
+        // Ajouter le statut
+        ligne.append("[").append(couleurStatus).append(status).append(RESET).append("]");
+
+        // Ajouter la bordure droite
+        ligne.append(bordure);
+
+        System.out.println(ligne.toString());
     }
 
     /**
@@ -347,27 +553,7 @@ public class TrajetController {
             return;
         }
 
-        System.out.println("Vos trajets à venir :");
-
-        // En-tête du tableau
-        System.out.println(String.format("%-5s │ %-15s │ %-15s │ %-20s │ %-8s │ %-10s │ %-20s",
-                "ID", "DÉPART", "ARRIVÉE", "DATE/HEURE", "PRIX", "PLACES", "STATUT"));
-        System.out.println("──────┼─────────────────┼─────────────────┼──────────────────────┼──────────┼────────────┼─────────────────────");
-
-        // Contenu du tableau
-        for (Trajet t : trajetsFuturs) {
-            String statut = t.isEstAnnule() ? "ANNULÉ" : "ACTIF";
-            System.out.println(String.format("%-5d │ %-15s │ %-15s │ %-20s │ %8.2f Dinars │ %-10d │ %-20s",
-                    t.getId(),
-                    t.getLieuDepart(),
-                    t.getLieuArrivee(),
-                    t.getDateDepart().format(formatter),
-                    t.getPrix(),
-                    t.getNbPlacesDisponibles(),
-                    statut));
-        }
-
-        System.out.println(SOUS_LIGNE);
+        afficherListeTrajetsPaginee(trajetsFuturs);
 
         System.out.print("\n➤ Entrez l'ID du trajet à modifier : ");
         String idStr = scanner.nextLine().trim();
@@ -490,25 +676,7 @@ public class TrajetController {
             return;
         }
 
-        System.out.println("Vos trajets actifs à venir :");
-
-        // En-tête du tableau
-        System.out.println(String.format("%-5s │ %-15s │ %-15s │ %-20s │ %-8s │ %-10s",
-                "ID", "DÉPART", "ARRIVÉE", "DATE/HEURE", "PRIX", "PLACES"));
-        System.out.println("──────┼─────────────────┼─────────────────┼──────────────────────┼──────────┼────────────");
-
-        // Contenu du tableau
-        for (Trajet t : trajetsActifs) {
-            System.out.println(String.format("%-5d │ %-15s │ %-15s │ %-20s │ %8.2f Dinars │ %-10d",
-                    t.getId(),
-                    t.getLieuDepart(),
-                    t.getLieuArrivee(),
-                    t.getDateDepart().format(formatter),
-                    t.getPrix(),
-                    t.calculerPlacesRestantes()));
-        }
-
-        System.out.println(SOUS_LIGNE);
+        afficherListeTrajetsPaginee(trajetsActifs);
 
         System.out.print("\n➤ Entrez l'ID du trajet à annuler : ");
         String idStr = scanner.nextLine().trim();
@@ -569,25 +737,7 @@ public class TrajetController {
             return;
         }
 
-        System.out.println("Vos trajets annulés à venir :");
-
-        // En-tête du tableau
-        System.out.println(String.format("%-5s │ %-15s │ %-15s │ %-20s │ %-8s │ %-10s",
-                "ID", "DÉPART", "ARRIVÉE", "DATE/HEURE", "PRIX", "PLACES"));
-        System.out.println("──────┼─────────────────┼─────────────────┼──────────────────────┼──────────┼────────────");
-
-        // Contenu du tableau
-        for (Trajet t : trajetsAnnules) {
-            System.out.println(String.format("%-5d │ %-15s │ %-15s │ %-20s │ %8.2f Dinars │ %-10d",
-                    t.getId(),
-                    t.getLieuDepart(),
-                    t.getLieuArrivee(),
-                    t.getDateDepart().format(formatter),
-                    t.getPrix(),
-                    t.getNbPlacesDisponibles()));
-        }
-
-        System.out.println(SOUS_LIGNE);
+        afficherListeTrajetsPaginee(trajetsAnnules);
 
         System.out.print("\n➤ Entrez l'ID du trajet à réactiver : ");
         String idStr = scanner.nextLine().trim();
@@ -643,29 +793,7 @@ public class TrajetController {
             return;
         }
 
-        System.out.println("Tous vos trajets :");
-
-        // En-tête du tableau
-        System.out.println(String.format("%-5s │ %-15s │ %-15s │ %-20s │ %-8s │ %-10s │ %-10s",
-                "ID", "DÉPART", "ARRIVÉE", "DATE/HEURE", "PRIX", "PLACES", "STATUT"));
-        System.out.println("──────┼─────────────────┼─────────────────┼──────────────────────┼──────────┼────────────┼────────────");
-
-        // Contenu du tableau
-        for (Trajet t : tousTrajets) {
-            String statut = t.isEstAnnule() ? "ANNULÉ" : "ACTIF";
-            String datePassee = t.getDateDepart().isBefore(LocalDateTime.now()) ? " (passé)" : "";
-            System.out.println(String.format("%-5d │ %-15s │ %-15s │ %-20s │ %8.2f Dinars │ %-10d │ %-10s%s",
-                    t.getId(),
-                    t.getLieuDepart(),
-                    t.getLieuArrivee(),
-                    t.getDateDepart().format(formatter),
-                    t.getPrix(),
-                    t.getNbPlacesDisponibles(),
-                    statut,
-                    datePassee));
-        }
-
-        System.out.println(SOUS_LIGNE);
+        afficherListeTrajetsPaginee(tousTrajets);
 
         System.out.print("\n➤ Entrez l'ID du trajet à supprimer : ");
         String idStr = scanner.nextLine().trim();
@@ -685,7 +813,7 @@ public class TrajetController {
             return;
         }
 
-        // Vérifier si le trajet a des réservations
+        // Vérifier si le trajet a des réservations associées
         List<Reservation> reservations = ServiceFactory.getReservationService().getReservationsByTrajet(trajetId);
         if (!reservations.isEmpty()) {
             System.out.println("\n⚠️  ATTENTION: Ce trajet a " + reservations.size() + " réservation(s).");
@@ -705,6 +833,7 @@ public class TrajetController {
                 }
             } catch (Exception e) {
                 afficherMessageErreur("Erreur lors de la suppression du trajet : " + e.getMessage());
+                System.out.println("Note: Pour supprimer un trajet qui a des réservations, il faut d'abord supprimer ces réservations.");
             }
         } else {
             System.out.println("Suppression abandonnée.");

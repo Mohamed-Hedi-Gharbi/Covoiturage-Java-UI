@@ -208,48 +208,83 @@ public class TrajetDAO {
 
 
     public boolean delete(Long id) {
-        // Premièrement: supprimer les réservations liées
-        String deleteReservationsSQL = "DELETE FROM reservations WHERE trajet_id = ?";
+        // Premièrement: vérifier l'existence des dépendances
+        boolean hasReservations = false;
+        boolean hasAvis = false;
+        boolean hasPaiements = false;
 
-        // Deuxièmement: supprimer les avis liés
-        String deleteAvisSQL = "DELETE FROM avis WHERE trajet_id = ?";
+        try (Connection conn = DatabaseConfig.getConnection()) {
+            // Vérifier les réservations
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT COUNT(*) FROM reservations WHERE trajet_id = ?")) {
+                pstmt.setLong(1, id);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        hasReservations = rs.getInt(1) > 0;
+                    }
+                }
+            }
 
-        // Troisièmement: supprimer les paiements liés aux réservations du trajet
-        String deletePaiementsSQL = "DELETE FROM paiements WHERE reservation_id IN (SELECT id FROM reservations WHERE trajet_id = ?)";
+            // Vérifier les avis
+            try (PreparedStatement pstmt = conn.prepareStatement("SELECT COUNT(*) FROM avis WHERE trajet_id = ?")) {
+                pstmt.setLong(1, id);
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    if (rs.next()) {
+                        hasAvis = rs.getInt(1) > 0;
+                    }
+                }
+            }
 
-        // Finalement: supprimer le trajet
-        String deleteTrajetSQL = "DELETE FROM trajets WHERE id = ?";
+            // Vérifier les paiements liés aux réservations du trajet
+            if (hasReservations) {
+                try (PreparedStatement pstmt = conn.prepareStatement(
+                        "SELECT COUNT(*) FROM paiements WHERE reservation_id IN (SELECT id FROM reservations WHERE trajet_id = ?)")) {
+                    pstmt.setLong(1, id);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        if (rs.next()) {
+                            hasPaiements = rs.getInt(1) > 0;
+                        }
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
 
+        // Supprimer en utilisant une transaction
         Connection conn = null;
         try {
             conn = DatabaseConfig.getConnection();
-            // Désactiver l'auto-commit pour utiliser une transaction
             conn.setAutoCommit(false);
 
-            // Supprimer d'abord les paiements
-            try (PreparedStatement pstmt = conn.prepareStatement(deletePaiementsSQL)) {
-                pstmt.setLong(1, id);
-                pstmt.executeUpdate();
+            // Si nous avons des dépendances, nous les supprimons d'abord
+            if (hasPaiements) {
+                try (PreparedStatement pstmt = conn.prepareStatement(
+                        "DELETE FROM paiements WHERE reservation_id IN (SELECT id FROM reservations WHERE trajet_id = ?)")) {
+                    pstmt.setLong(1, id);
+                    pstmt.executeUpdate();
+                }
             }
 
-            // Ensuite supprimer les réservations
-            try (PreparedStatement pstmt = conn.prepareStatement(deleteReservationsSQL)) {
-                pstmt.setLong(1, id);
-                pstmt.executeUpdate();
+            if (hasReservations) {
+                try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM reservations WHERE trajet_id = ?")) {
+                    pstmt.setLong(1, id);
+                    pstmt.executeUpdate();
+                }
             }
 
-            // Puis supprimer les avis
-            try (PreparedStatement pstmt = conn.prepareStatement(deleteAvisSQL)) {
-                pstmt.setLong(1, id);
-                pstmt.executeUpdate();
+            if (hasAvis) {
+                try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM avis WHERE trajet_id = ?")) {
+                    pstmt.setLong(1, id);
+                    pstmt.executeUpdate();
+                }
             }
 
-            // Enfin supprimer le trajet
-            try (PreparedStatement pstmt = conn.prepareStatement(deleteTrajetSQL)) {
+            // Finalement, supprimer le trajet
+            try (PreparedStatement pstmt = conn.prepareStatement("DELETE FROM trajets WHERE id = ?")) {
                 pstmt.setLong(1, id);
                 int rowsAffected = pstmt.executeUpdate();
 
-                // Confirmer la transaction
                 conn.commit();
                 return rowsAffected > 0;
             }
@@ -265,7 +300,7 @@ public class TrajetDAO {
             e.printStackTrace();
             return false;
         } finally {
-            // Rétablir l'auto-commit
+            // Rétablir l'auto-commit et fermer la connexion
             if (conn != null) {
                 try {
                     conn.setAutoCommit(true);

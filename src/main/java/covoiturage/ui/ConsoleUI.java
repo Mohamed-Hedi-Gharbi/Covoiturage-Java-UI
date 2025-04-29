@@ -11,9 +11,14 @@ import covoiturage.ui.controller.TrajetController;
 import covoiturage.ui.controller.UtilisateurController;
 import covoiturage.ui.validator.InputValidator;
 
+import javax.swing.*;
+import java.awt.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
+import java.io.Console;
+import java.util.Arrays;
+import java.awt.HeadlessException;
 
 /**
  * Interface console de l'application de covoiturage.
@@ -36,10 +41,10 @@ public class ConsoleUI {
      */
     public ConsoleUI() {
         this.scanner = new Scanner(System.in);
-        this.utilisateurController = new UtilisateurController(scanner);
+        this.utilisateurController = new UtilisateurController(scanner, this);
         this.trajetController = new TrajetController(scanner);
         this.reservationController = new ReservationController(scanner);
-        this.adminController = new AdminController(scanner);
+        this.adminController = new AdminController(scanner, this);
     }
 
     /**
@@ -223,6 +228,7 @@ public class ConsoleUI {
             System.out.println("6. Supprimer un trajet");
             System.out.println("7. Modifier mon profil");
             System.out.println("8. Voir mon profil");
+            System.out.println("9. Gérer les réservations");
             System.out.println("0. Déconnexion");
             System.out.println(SOUS_LIGNE);
             System.out.print("➤ Votre choix : ");
@@ -258,6 +264,9 @@ public class ConsoleUI {
                     break;
                 case "8":
                     afficherProfilConducteur(conducteur);
+                    break;
+                case "9":
+                    reservationController.gererReservationsEnAttente(conducteur);
                     break;
                 case "0":
                     afficherMessageSucces("Déconnexion effectuée avec succès.");
@@ -312,6 +321,49 @@ public class ConsoleUI {
     }
 
     /**
+     * Méthode améliorée pour lire un mot de passe sécurisé.
+     * Si nous sommes dans un IDE, utilise une fenêtre Swing pour masquer le mot de passe.
+     *
+     * @param prompt Le message à afficher avant la saisie
+     * @return Le mot de passe saisi
+     */
+    public String lireMotDePasseSecurise(String prompt) {
+
+        // Utiliser une fenêtre de dialogue Swing pour les IDEs
+        try {
+            // Afficher un message dans la console
+            System.out.println("Une fenêtre de dialogue a été ouverte pour saisir le mot de passe en toute sécurité.");
+
+            // Créer une boîte de dialogue pour la saisie du mot de passe
+            JPanel panel = new JPanel();
+            JLabel label = new JLabel(prompt);
+            JPasswordField passwordField = new JPasswordField(20);
+            panel.add(label);
+            panel.add(passwordField);
+
+            int option = JOptionPane.showConfirmDialog(
+                    null, panel, "Saisie sécurisée du mot de passe",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+            if (option == JOptionPane.OK_OPTION) {
+                char[] password = passwordField.getPassword();
+                String result = new String(password);
+                // Effacer le tableau de caractères pour la sécurité
+                Arrays.fill(password, ' ');
+                return result;
+            } else {
+                // L'utilisateur a annulé, retourner une chaîne vide
+                return "";
+            }
+        } catch (HeadlessException e) {
+            // Si l'environnement graphique n'est pas disponible (rare)
+            System.out.println("Note: Le masquage du mot de passe n'est pas disponible dans cet environnement.");
+            System.out.print(prompt);
+            return scanner.nextLine().trim();
+        }
+    }
+
+    /**
      * Gère la connexion d'un conducteur.
      * @return Un Optional contenant le conducteur connecté, ou vide si échec
      */
@@ -323,8 +375,8 @@ public class ConsoleUI {
         System.out.print("➤ Email : ");
         String email = scanner.nextLine().trim();
 
-        System.out.print("➤ Mot de passe : ");
-        String motDePasse = scanner.nextLine().trim();
+        // Utiliser la méthode sécurisée pour la saisie du mot de passe
+        String motDePasse = lireMotDePasseSecurise("➤ Mot de passe : ");
 
         try {
             Optional<Conducteur> conducteur = ServiceFactory.getConducteurService().authentifier(email, motDePasse);

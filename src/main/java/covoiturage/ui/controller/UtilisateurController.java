@@ -3,19 +3,23 @@ package covoiturage.ui.controller;
 import covoiturage.model.Utilisateur;
 import covoiturage.service.ServiceFactory;
 import covoiturage.service.UtilisateurService;
+import covoiturage.ui.ConsoleUI;
 import covoiturage.ui.validator.InputValidator;
-import jdk.jshell.execution.Util;
 
+
+import java.io.Console;
 import java.util.Optional;
 import java.util.Scanner;
 
 public class UtilisateurController {
     private UtilisateurService utilisateurService;
     private Scanner scanner;
+    private ConsoleUI consoleUI;
 
-    public UtilisateurController(Scanner scanner) {
+    public UtilisateurController(Scanner scanner, ConsoleUI consoleUI) {
         this.utilisateurService = ServiceFactory.getUtilisateurService();
         this.scanner = scanner;
+        this.consoleUI = consoleUI;
     }
 
     public Optional<Utilisateur> inscription() {
@@ -103,8 +107,8 @@ public class UtilisateurController {
         System.out.print("Email : ");
         String email = scanner.nextLine().trim();
 
-        System.out.print("Mot de passe : ");
-        String motDePasse = scanner.nextLine().trim();
+        // Utiliser la méthode sécurisée via ConsoleUI
+        String motDePasse = consoleUI.lireMotDePasseSecurise("Mot de passe : ");
 
         try {
             Optional<Utilisateur> utilisateur = utilisateurService.authentifier(email, motDePasse);

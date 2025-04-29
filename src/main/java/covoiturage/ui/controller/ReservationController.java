@@ -1,5 +1,6 @@
 package covoiturage.ui.controller;
 
+import covoiturage.model.Conducteur;
 import covoiturage.model.Reservation;
 import covoiturage.model.Trajet;
 import covoiturage.model.Utilisateur;
@@ -10,9 +11,11 @@ import covoiturage.service.TrajetService;
 import covoiturage.ui.validator.InputValidator;
 
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 public class ReservationController {
     private ReservationService reservationService;
@@ -62,11 +65,27 @@ public class ReservationController {
             return;
         }
 
+        // Calculer le nombre de places déjà réservées par cet utilisateur
+        int placesDejaReservees = 0;
+        List<Reservation> reservationsUtilisateur = reservationService.getReservationsByUtilisateur(utilisateur.getId())
+                .stream()
+                .filter(r -> r.getTrajet().getId().equals(trajetId) &&
+                        !r.isAnnule() &&
+                        r.getStatut() != StatutReservation.ANNULEE)
+                .collect(Collectors.toList());
+
+        for (Reservation r : reservationsUtilisateur) {
+            placesDejaReservees += r.getNbPlaces();
+        }
+
         int placesRestantes = trajet.calculerPlacesRestantes();
         if (placesRestantes <= 0) {
             System.out.println("Il n'y a plus de places disponibles pour ce trajet.");
             return;
         }
+
+        System.out.println("Vous avez déjà réservé " + placesDejaReservees + " place(s) pour ce trajet.");
+        System.out.println("Il reste " + placesRestantes + " place(s) disponible(s).");
 
         int nbPlaces = 0;
         while (nbPlaces <= 0 || nbPlaces > placesRestantes) {
@@ -143,6 +162,121 @@ public class ReservationController {
                     reservation.getNbPlaces(),
                     montantTotal,
                     reservation.getStatut()));
+        }
+    }
+
+    // Dans ReservationController.java
+    public void gererReservationsEnAttente(Conducteur conducteur) {
+        System.out.println("\n=== GESTION DES RÉSERVATIONS ===");
+
+        // Récupérer les trajets du conducteur
+        List<Trajet> trajets = ServiceFactory.getConducteurService().getTrajetsByConducteur(conducteur.getId());
+
+        if (trajets.isEmpty()) {
+            System.out.println("Vous n'avez pas encore proposé de trajets.");
+            return;
+        }
+
+        // Récupérer toutes les réservations pour les trajets du conducteur
+        List<Reservation> toutesReservations = new ArrayList<>();
+
+        for (Trajet trajet : trajets) {
+            toutesReservations.addAll(ServiceFactory.getReservationService().getReservationsByTrajet(trajet.getId()));
+        }
+
+        // Filtrer uniquement les réservations en attente
+        List<Reservation> reservationsEnAttente = toutesReservations.stream()
+                .filter(r -> r.getStatut() == StatutReservation.EN_ATTENTE)
+                .collect(Collectors.toList());
+
+        if (reservationsEnAttente.isEmpty()) {
+            System.out.println("Vous n'avez pas de réservations en attente.");
+            return;
+        }
+
+        // Afficher les réservations en attente
+        System.out.println(String.format("%-5s %-15s %-15s %-20s %-10s %-20s %-15s",
+                "ID", "DÉPART", "ARRIVÉE", "DATE", "PLACES", "PASSAGER", "STATUT"));
+        System.out.println("------------------------------------------------------------------------------------------------------------------------");
+
+        for (Reservation reservation : reservationsEnAttente) {
+            Trajet trajet = reservation.getTrajet();
+            String passager = reservation.getUtilisateur().getPrenom() + " " + reservation.getUtilisateur().getNom();
+
+            System.out.println(String.format("%-5d %-15s %-15s %-20s %-10d %-20s %-15s",
+                    reservation.getId(),
+                    trajet.getLieuDepart(),
+                    trajet.getLieuArrivee(),
+                    trajet.getDateDepart().format(formatter),
+                    reservation.getNbPlaces(),
+                    passager,
+                    reservation.getStatut()));
+        }
+
+        System.out.print("\nEntrez l'ID de la réservation à gérer (0 pour revenir) : ");
+        String idStr = scanner.nextLine().trim();
+
+        if (idStr.equals("0")) {
+            return;
+        }
+
+        if (!InputValidator.isValidInteger(idStr)) {
+            System.out.println("ID invalide.");
+            return;
+        }
+
+        Long reservationId = Long.parseLong(idStr);
+        Optional<Reservation> optReservation = reservationsEnAttente.stream()
+                .filter(r -> r.getId().equals(reservationId))
+                .findFirst();
+
+        if (optReservation.isEmpty()) {
+            System.out.println("Réservation non trouvée.");
+            return;
+        }
+
+        Reservation reservation = optReservation.get();
+
+        System.out.println("\nRéservation #" + reservationId);
+        System.out.println("Passager: " + reservation.getUtilisateur().getPrenom() + " " + reservation.getUtilisateur().getNom());
+        System.out.println("Téléphone: " + reservation.getUtilisateur().getTelephone());
+        System.out.println("Trajet: " + reservation.getTrajet().getLieuDepart() + " → " + reservation.getTrajet().getLieuArrivee());
+        System.out.println("Date: " + reservation.getTrajet().getDateDepart().format(formatter));
+        System.out.println("Places demandées: " + reservation.getNbPlaces());
+
+        System.out.println("\n1. Accepter la réservation");
+        System.out.println("2. Refuser la réservation");
+        System.out.println("0. Retour");
+
+        System.out.print("\nVotre choix : ");
+        String choix = scanner.nextLine().trim();
+
+        try {
+            switch (choix) {
+                case "1":
+                    boolean accepte = ServiceFactory.getReservationService().confirmerReservation(reservationId);
+                    if (accepte) {
+                        System.out.println("Réservation acceptée avec succès !");
+                    } else {
+                        System.out.println("Erreur lors de l'acceptation de la réservation.");
+                    }
+                    break;
+                case "2":
+                    boolean refuse = ServiceFactory.getReservationService().annulerReservation(reservationId);
+                    if (refuse) {
+                        System.out.println("Réservation annulée avec succès !");
+                    } else {
+                        System.out.println("Erreur lors d'annulation de la réservation.");
+                    }
+                    break;
+                case "0":
+                    return;
+                default:
+                    System.out.println("Choix invalide.");
+                    break;
+            }
+        } catch (Exception e) {
+            System.out.println("Erreur : " + e.getMessage());
         }
     }
 

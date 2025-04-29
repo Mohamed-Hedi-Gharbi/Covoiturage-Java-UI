@@ -112,7 +112,7 @@ public class PaiementDAO {
             pstmt.setLong(3, paiement.getReservation().getId());
             pstmt.setBoolean(4, paiement.isEstRembourse());
 
-            try (ResultSet rs = pstmt.getResultSet()) {
+            try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     Long id = rs.getLong(1);
                     paiement.setId(id);
