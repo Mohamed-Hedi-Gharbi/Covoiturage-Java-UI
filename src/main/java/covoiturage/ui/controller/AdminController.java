@@ -346,7 +346,7 @@ public class AdminController {
 
         Long trajetId = Long.parseLong(idStr);
         TrajetController trajetController = new TrajetController(scanner);
-        trajetController.afficherDeatilTrajet(trajetId);
+        trajetController.afficherDetailTrajet(trajetId);
     }
 
     private void supprimerTrajet() {
@@ -365,7 +365,8 @@ public class AdminController {
 
         if (confirmation.equals("o") || confirmation.equals("oui")) {
             try {
-                boolean success = ServiceFactory.getConducteurService().annulerTrajet(trajetId);
+                // Appeler directement le service de gestion des trajets pour la suppression
+                boolean success = ServiceFactory.getTrajetService().deleteTrajet(trajetId);
                 if (success) {
                     System.out.println("Trajet supprimé avec succès !");
                 } else {

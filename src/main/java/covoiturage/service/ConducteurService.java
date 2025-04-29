@@ -4,20 +4,20 @@ import covoiturage.dao.ConducteurDAO;
 import covoiturage.dao.DAOFactory;
 import covoiturage.dao.TrajetDAO;
 import covoiturage.model.Conducteur;
+import covoiturage.model.Reservation;
 import covoiturage.model.Trajet;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-
 
 public class ConducteurService {
     private ConducteurDAO conducteurDAO;
     private TrajetDAO trajetDAO;
 
-
     public ConducteurService() {
-        this.conducteurDAO  = DAOFactory.getConducteurDAO();
-        this.trajetDAO      = DAOFactory.getTrajetDAO();
+        this.conducteurDAO = DAOFactory.getConducteurDAO();
+        this.trajetDAO = DAOFactory.getTrajetDAO();
     }
 
     public Optional<Conducteur> getConducteurById(Long id) {
@@ -63,7 +63,6 @@ public class ConducteurService {
                 return Optional.of(conducteur);
             }
         }
-
         return Optional.empty();
     }
 
@@ -105,8 +104,46 @@ public class ConducteurService {
         return false;
     }
 
+    public boolean reactiverTrajet(Long trajetId) {
+        Optional<Trajet> optTrajet = trajetDAO.findById(trajetId);
+        if (optTrajet.isPresent()) {
+            Trajet trajet = optTrajet.get();
+            trajet.setEstAnnule(false);
+            return trajetDAO.update(trajet);
+        }
+        return false;
+    }
+
+    public boolean supprimerTrajet(Long trajetId) {
+        // Vérification préalable que le trajet existe
+        Optional<Trajet> optTrajet = trajetDAO.findById(trajetId);
+        if (optTrajet.isEmpty()) {
+            throw new IllegalArgumentException("Le trajet n'existe pas");
+        }
+
+        // Vérifier si c'est un trajet futur avec des réservations confirmées
+        Trajet trajet = optTrajet.get();
+        if (trajet.getDateDepart().isAfter(LocalDateTime.now())) {
+            List<Reservation> reservations = ServiceFactory.getReservationService()
+                    .getReservationsByTrajet(trajetId).stream()
+                    .filter(r -> !r.isAnnule())
+                    .toList();
+
+            if (!reservations.isEmpty()) {
+                // Annuler toutes les réservations liées
+                for (Reservation reservation : reservations) {
+                    ServiceFactory.getReservationService().annulerReservation(reservation.getId());
+                }
+            }
+        }
+
+        // Procéder à la suppression
+        return trajetDAO.delete(trajetId);
+    }
+
+
     public boolean modifierTrajet(Trajet trajet) {
-        // Mêmes vérifications que pour la création
+        // Vérifications de validation
         if (trajet.getLieuDepart() == null || trajet.getLieuDepart().isBlank()) {
             throw new IllegalArgumentException("Le lieu de départ ne peut pas être vide");
         }
@@ -125,5 +162,4 @@ public class ConducteurService {
 
         return trajetDAO.update(trajet);
     }
-
 }

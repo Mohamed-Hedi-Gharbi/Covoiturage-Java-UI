@@ -2,6 +2,7 @@ package covoiturage.service;
 
 import covoiturage.dao.DAOFactory;
 import covoiturage.dao.TrajetDAO;
+import covoiturage.model.Reservation;
 import covoiturage.model.Trajet;
 
 import java.time.LocalDateTime;
@@ -52,4 +53,30 @@ public class TrajetService {
         return false;
     }
 
+    public boolean deleteTrajet(Long trajetId) {
+        // Vérification préalable que le trajet existe
+        Optional<Trajet> optTrajet = trajetDAO.findById(trajetId);
+        if (optTrajet.isEmpty()) {
+            throw new IllegalArgumentException("Le trajet n'existe pas");
+        }
+
+        // Vérifier si c'est un trajet futur avec des réservations confirmées
+        Trajet trajet = optTrajet.get();
+        if (trajet.getDateDepart().isAfter(LocalDateTime.now())) {
+            List<Reservation> reservations = ServiceFactory.getReservationService()
+                    .getReservationsByTrajet(trajetId).stream()
+                    .filter(r -> !r.isAnnule())
+                    .toList();
+
+            if (!reservations.isEmpty()) {
+                // Annuler toutes les réservations liées
+                for (Reservation reservation : reservations) {
+                    ServiceFactory.getReservationService().annulerReservation(reservation.getId());
+                }
+            }
+        }
+
+        // Procéder à la suppression
+        return trajetDAO.delete(trajetId);
+    }
 }

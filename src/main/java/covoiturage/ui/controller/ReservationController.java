@@ -277,7 +277,7 @@ public class ReservationController {
         Reservation reservation = optReservation.get();
         double montantTotal = reservation.getTrajet().getPrix() * reservation.getNbPlaces();
 
-        System.out.println("Montant à payer : " + montantTotal + " €");
+        System.out.println("Montant à payer : " + montantTotal + " Dinars");
         System.out.print("Confirmer le paiement ? (o/n) : ");
         String confirmation = scanner.nextLine().trim().toLowerCase();
 
