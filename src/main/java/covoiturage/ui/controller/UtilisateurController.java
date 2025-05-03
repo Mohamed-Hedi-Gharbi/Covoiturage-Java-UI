@@ -3,11 +3,11 @@ package covoiturage.ui.controller;
 import covoiturage.model.Utilisateur;
 import covoiturage.service.ServiceFactory;
 import covoiturage.service.UtilisateurService;
+import covoiturage.ui.AuthUI;
 import covoiturage.ui.ConsoleUI;
 import covoiturage.ui.validator.InputValidator;
 
 
-import java.io.Console;
 import java.util.Optional;
 import java.util.Scanner;
 
@@ -15,11 +15,13 @@ public class UtilisateurController {
     private UtilisateurService utilisateurService;
     private Scanner scanner;
     private ConsoleUI consoleUI;
+    private AuthUI authUI;
 
     public UtilisateurController(Scanner scanner, ConsoleUI consoleUI) {
         this.utilisateurService = ServiceFactory.getUtilisateurService();
         this.scanner = scanner;
         this.consoleUI = consoleUI;
+        this.authUI = new AuthUI();
     }
 
     public Optional<Utilisateur> inscription() {
@@ -104,11 +106,13 @@ public class UtilisateurController {
     public Optional<Utilisateur> connexion() {
         System.out.println("\n=== CONNEXION UTILISATEUR ===");
 
-        System.out.print("Email : ");
-        String email = scanner.nextLine().trim();
-
-        // Utiliser la méthode sécurisée via ConsoleUI
-        String motDePasse = consoleUI.lireMotDePasseSecurise("Mot de passe : ");
+        String[] identifiants = authUI.lireIdentifiantsSecurises();
+        if (identifiants == null) {
+            System.out.println("Connexion annulée.");
+            return Optional.empty();
+        }
+        String email = identifiants[0];
+        String motDePasse = identifiants[1];
 
         try {
             Optional<Utilisateur> utilisateur = utilisateurService.authentifier(email, motDePasse);
