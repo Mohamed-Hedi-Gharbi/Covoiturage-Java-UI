@@ -4,7 +4,7 @@ import covoiturage.model.Utilisateur;
 import covoiturage.service.ServiceFactory;
 import covoiturage.service.UtilisateurService;
 import covoiturage.ui.AuthUI;
-import covoiturage.ui.ConsoleUI;
+import covoiturage.ui.console.ConsoleUI;
 import covoiturage.ui.validator.InputValidator;
 
 

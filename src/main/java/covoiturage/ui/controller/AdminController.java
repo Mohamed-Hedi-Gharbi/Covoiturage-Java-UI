@@ -6,7 +6,7 @@ import covoiturage.model.Trajet;
 import covoiturage.model.Utilisateur;
 import covoiturage.service.*;
 import covoiturage.ui.AuthUI;
-import covoiturage.ui.ConsoleUI;
+import covoiturage.ui.console.ConsoleUI;
 import covoiturage.ui.validator.InputValidator;
 
 import java.util.List;

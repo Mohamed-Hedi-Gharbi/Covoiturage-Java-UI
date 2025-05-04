@@ -1,10 +1,11 @@
-package covoiturage.ui;
+package covoiturage.ui.console;
 
 import covoiturage.model.Administrateur;
 import covoiturage.model.Conducteur;
 import covoiturage.model.Trajet;
 import covoiturage.model.Utilisateur;
 import covoiturage.service.ServiceFactory;
+import covoiturage.ui.AuthUI;
 import covoiturage.ui.controller.*;
 import covoiturage.ui.validator.InputValidator;
 

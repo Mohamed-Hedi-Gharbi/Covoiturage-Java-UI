@@ -1,15 +1,24 @@
 package covoiturage;
 
-import covoiturage.ui.ConsoleUI;
+import covoiturage.ui.console.ConsoleUI;
+import covoiturage.ui.gui.CovoiturageGUI;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Démarrage de l'application de covoiturage...");
+        // Arguments pour choisir l'interface (console ou GUI)
+        boolean useGUI = true; // Par défaut, utiliser l'interface graphique
 
-        // Initialisation de l'interface utilisateur console
-        ConsoleUI ui = new ConsoleUI();
+        if (args.length > 0 && args[0].equalsIgnoreCase("console")) {
+            useGUI = false;
+        }
 
-        // Démarrage de l'application
-        ui.demarrer();
+        if (useGUI) {
+            // Lancer l'interface graphique
+            CovoiturageGUI.main(args);
+        } else {
+            // Lancer l'interface console
+            ConsoleUI consoleUI = new ConsoleUI();
+            consoleUI.demarrer();
+        }
     }
 }
