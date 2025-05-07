@@ -3,9 +3,7 @@ package covoiturage.service;
 import covoiturage.dao.ConducteurDAO;
 import covoiturage.dao.DAOFactory;
 import covoiturage.dao.TrajetDAO;
-import covoiturage.model.Conducteur;
-import covoiturage.model.Reservation;
-import covoiturage.model.Trajet;
+import covoiturage.model.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -52,6 +50,34 @@ public class ConducteurService {
     }
 
     public boolean supprimerConducteur(Long id) {
+        // Récupérer tous les trajets du conducteur
+        List<Trajet> trajets = trajetDAO.findByConducteurId(id);
+
+        // Supprimer chaque trajet
+        for (Trajet trajet : trajets) {
+            // D'abord supprimer toutes les réservations liées au trajet
+            List<Reservation> reservations = ServiceFactory.getReservationService().getReservationsByTrajet(trajet.getId());
+            for (Reservation reservation : reservations) {
+                // Vérifier s'il y a un paiement lié à la réservation et le supprimer
+                Optional<Paiement> paiement = ServiceFactory.getPaiementService().getPaiementByReservation(reservation.getId());
+                if (paiement.isPresent()) {
+                    ServiceFactory.getPaiementService().rembourserPaiement(paiement.get().getId());
+                }
+                // Supprimer la réservation
+                ServiceFactory.getReservationService().annulerReservation(reservation.getId());
+            }
+
+            // Supprimer les avis liés au trajet
+            List<Avis> avisTrajet = ServiceFactory.getAvisService().getAvisByTrajet(trajet.getId());
+            for (Avis avis : avisTrajet) {
+                ServiceFactory.getAvisService().supprimerAvis(avis.getId());
+            }
+
+            // Supprimer le trajet
+            trajetDAO.delete(trajet.getId());
+        }
+
+        // Maintenant supprimer le conducteur
         return conducteurDAO.delete(id);
     }
 

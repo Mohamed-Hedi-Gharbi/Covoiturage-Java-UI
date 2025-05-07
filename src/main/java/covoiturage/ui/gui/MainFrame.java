@@ -1,7 +1,7 @@
 package covoiturage.ui.gui;
 
 import covoiturage.ui.gui.panels.LoginPanel;
-import covoiturage.ui.gui.utils.ColorScheme;
+
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,6 +9,7 @@ import java.awt.*;
 public class MainFrame extends JFrame {
     private JPanel contentPanel;
     private CardLayout cardLayout;
+    private LoginPanel loginPanel;
 
     // Constantes pour identifier les différentes vues
     public static final String LOGIN_PANEL = "LOGIN";
@@ -27,8 +28,11 @@ public class MainFrame extends JFrame {
         cardLayout = new CardLayout();
         contentPanel = new JPanel(cardLayout);
 
+        // Création et stockage du LoginPanel
+        loginPanel = new LoginPanel(this);
+
         // Ajout des différents panels
-        contentPanel.add(new LoginPanel(this), LOGIN_PANEL);
+        contentPanel.add(loginPanel, LOGIN_PANEL);
 
         // Le panel de connexion est affiché par défaut
         add(contentPanel);
@@ -37,8 +41,14 @@ public class MainFrame extends JFrame {
         cardLayout.show(contentPanel, LOGIN_PANEL);
     }
 
-    // Méthode pour changer de vue
+    // Méthode pour changer de vue avec réinitialisation des champs de connexion
     public void switchPanel(String panelName) {
+        // Si on revient à l'écran de connexion, réinitialiser les champs
+        if (panelName.equals(LOGIN_PANEL)) {
+            loginPanel.resetFields(); // Appel de la méthode de réinitialisation
+        }
+
+        // Afficher le panel demandé
         cardLayout.show(contentPanel, panelName);
     }
 

@@ -11,7 +11,6 @@ import covoiturage.ui.gui.components.NavigationBar;
 import covoiturage.ui.gui.components.SideBar;
 import covoiturage.ui.gui.utils.ColorScheme;
 import covoiturage.ui.gui.utils.ComponentFactory;
-import covoiturage.ui.validator.InputValidator;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -644,14 +643,6 @@ public class AdminPanel extends JPanel {
         JTextField preferencesField = ComponentFactory.createTextField("Préférences");
         contentPanel.add(preferencesField, c);
 
-        // Message d'erreur
-        c.gridx = 0;
-        c.gridy = 7;
-        c.gridwidth = 2;
-        JLabel errorLabel = new JLabel("");
-        errorLabel.setForeground(ColorScheme.ERROR);
-        contentPanel.add(errorLabel, c);
-
         dialog.add(contentPanel, BorderLayout.CENTER);
 
         // Boutons
@@ -662,7 +653,7 @@ public class AdminPanel extends JPanel {
 
         JButton saveButton = ComponentFactory.createButton("Enregistrer", ColorScheme.PRIMARY, Color.WHITE);
         saveButton.addActionListener(e -> {
-            // Récupération des valeurs
+            // Vérifications
             String nom = nomField.getText();
             String prenom = prenomField.getText();
             String email = emailField.getText();
@@ -670,58 +661,9 @@ public class AdminPanel extends JPanel {
             String telephone = telephoneField.getText();
             String preferences = preferencesField.getText();
 
-            // Validation
-            if (nom.isEmpty() || nom.equals("Nom")) {
-                errorLabel.setText("Le nom ne peut pas être vide.");
-                return;
-            }
-
-            if (prenom.isEmpty() || prenom.equals("Prénom")) {
-                errorLabel.setText("Le prénom ne peut pas être vide.");
-                return;
-            }
-
-            if (email.isEmpty() || email.equals("Email")) {
-                errorLabel.setText("L'email ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidEmail(email)) {
-                errorLabel.setText("Format d'email invalide.");
-                return;
-            }
-
-            if (password.isEmpty()) {
-                errorLabel.setText("Le mot de passe ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidPassword(password)) {
-                errorLabel.setText("Le mot de passe doit contenir au moins 6 caractères.");
-                return;
-            }
-
-            if (telephone.isEmpty() || telephone.equals("Téléphone")) {
-                errorLabel.setText("Le téléphone ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidTelephone(telephone)) {
-                errorLabel.setText("Le numéro de téléphone doit contenir 8 chiffres.");
-                return;
-            }
-
-            // Vérification de l'unicité de l'email
-            if (ServiceFactory.getUtilisateurService().getUtilisateurByEmail(email).isPresent()) {
-                errorLabel.setText("Un utilisateur avec cet email existe déjà.");
-                return;
-            }
-
-            // Création de l'utilisateur
+            // Créer l'utilisateur
             Utilisateur utilisateur = new Utilisateur(nom, prenom, email, password, telephone);
-            if (preferences != null && !preferences.isEmpty() && !preferences.equals("Préférences")) {
-                utilisateur.setPreferences(preferences);
-            }
+            utilisateur.setPreferences(preferences);
 
             try {
                 Long id = ServiceFactory.getUtilisateurService().creerUtilisateur(utilisateur);
@@ -736,10 +678,14 @@ public class AdminPanel extends JPanel {
                     // Actualiser la liste des utilisateurs
                     refreshUsersPanel();
                 } else {
-                    errorLabel.setText("Erreur lors de la création de l'utilisateur.");
+                    JOptionPane.showMessageDialog(dialog,
+                            "Erreur lors de la création de l'utilisateur.",
+                            "Erreur", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
-                errorLabel.setText("Erreur: " + ex.getMessage());
+                JOptionPane.showMessageDialog(dialog,
+                        "Erreur: " + ex.getMessage(),
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -778,7 +724,6 @@ public class AdminPanel extends JPanel {
             }
         }
     }
-
 
     private void showAddDriverDialog() {
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "Ajouter un conducteur", true);
@@ -871,14 +816,6 @@ public class AdminPanel extends JPanel {
         JTextField vehiculeField = ComponentFactory.createTextField("Marque, modèle, immatriculation");
         contentPanel.add(vehiculeField, c);
 
-        // Message d'erreur
-        c.gridx = 0;
-        c.gridy = 8;
-        c.gridwidth = 2;
-        JLabel errorLabel = new JLabel("");
-        errorLabel.setForeground(ColorScheme.ERROR);
-        contentPanel.add(errorLabel, c);
-
         dialog.add(contentPanel, BorderLayout.CENTER);
 
         // Boutons
@@ -889,7 +826,7 @@ public class AdminPanel extends JPanel {
 
         JButton saveButton = ComponentFactory.createButton("Enregistrer", ColorScheme.PRIMARY, Color.WHITE);
         saveButton.addActionListener(e -> {
-            // Récupération des valeurs
+            // Vérifications
             String nom = nomField.getText();
             String prenom = prenomField.getText();
             String email = emailField.getText();
@@ -898,64 +835,7 @@ public class AdminPanel extends JPanel {
             String permis = permisField.getText();
             String vehicule = vehiculeField.getText();
 
-            // Validation
-            if (nom.isEmpty() || nom.equals("Nom")) {
-                errorLabel.setText("Le nom ne peut pas être vide.");
-                return;
-            }
-
-            if (prenom.isEmpty() || prenom.equals("Prénom")) {
-                errorLabel.setText("Le prénom ne peut pas être vide.");
-                return;
-            }
-
-            if (email.isEmpty() || email.equals("Email")) {
-                errorLabel.setText("L'email ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidEmail(email)) {
-                errorLabel.setText("Format d'email invalide.");
-                return;
-            }
-
-            if (password.isEmpty()) {
-                errorLabel.setText("Le mot de passe ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidPassword(password)) {
-                errorLabel.setText("Le mot de passe doit contenir au moins 6 caractères.");
-                return;
-            }
-
-            if (telephone.isEmpty() || telephone.equals("Téléphone")) {
-                errorLabel.setText("Le téléphone ne peut pas être vide.");
-                return;
-            }
-
-            if (!InputValidator.isValidTelephone(telephone)) {
-                errorLabel.setText("Le numéro de téléphone doit contenir 8 chiffres.");
-                return;
-            }
-
-            if (permis.isEmpty() || permis.equals("Numéro de permis")) {
-                errorLabel.setText("Le numéro de permis ne peut pas être vide.");
-                return;
-            }
-
-            if (vehicule.isEmpty() || vehicule.equals("Marque, modèle, immatriculation")) {
-                errorLabel.setText("Les informations du véhicule ne peuvent pas être vides.");
-                return;
-            }
-
-            // Vérification de l'unicité de l'email
-            if (ServiceFactory.getConducteurService().getConducteurByEmail(email).isPresent()) {
-                errorLabel.setText("Un conducteur avec cet email existe déjà.");
-                return;
-            }
-
-            // Création du conducteur
+            // Créer le conducteur
             Conducteur conducteur = new Conducteur(nom, prenom, email, password, telephone, permis);
             conducteur.setVehiculeInfo(vehicule);
 
@@ -972,10 +852,14 @@ public class AdminPanel extends JPanel {
                     // Actualiser la liste des conducteurs
                     refreshDriversPanel();
                 } else {
-                    errorLabel.setText("Erreur lors de la création du conducteur.");
+                    JOptionPane.showMessageDialog(dialog,
+                            "Erreur lors de la création du conducteur.",
+                            "Erreur", JOptionPane.ERROR_MESSAGE);
                 }
             } catch (Exception ex) {
-                errorLabel.setText("Erreur: " + ex.getMessage());
+                JOptionPane.showMessageDialog(dialog,
+                        "Erreur: " + ex.getMessage(),
+                        "Erreur", JOptionPane.ERROR_MESSAGE);
             }
         });
 
@@ -989,7 +873,7 @@ public class AdminPanel extends JPanel {
 
     private void deleteDriver(Long driverId) {
         int choice = JOptionPane.showConfirmDialog(this,
-                "Êtes-vous sûr de vouloir supprimer ce conducteur ?",
+                "Êtes-vous sûr de vouloir supprimer ce conducteur ? Tous ses trajets seront également supprimés.",
                 "Suppression de conducteur", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
         if (choice == JOptionPane.YES_OPTION) {
@@ -997,7 +881,7 @@ public class AdminPanel extends JPanel {
                 boolean success = ServiceFactory.getConducteurService().supprimerConducteur(driverId);
                 if (success) {
                     JOptionPane.showMessageDialog(this,
-                            "Conducteur supprimé avec succès !",
+                            "Conducteur et tous ses trajets supprimés avec succès !",
                             "Succès", JOptionPane.INFORMATION_MESSAGE);
 
                     // Actualiser la liste des conducteurs
@@ -1011,10 +895,10 @@ public class AdminPanel extends JPanel {
                 JOptionPane.showMessageDialog(this,
                         "Erreur: " + e.getMessage(),
                         "Erreur", JOptionPane.ERROR_MESSAGE);
+                e.printStackTrace(); // Afficher la trace d'erreur pour le débogage
             }
         }
     }
-
     private void showRideDetailsDialog(Long rideId) {
         // Récupérer le trajet
         try {

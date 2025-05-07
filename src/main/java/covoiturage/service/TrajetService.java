@@ -31,7 +31,11 @@ public class TrajetService {
 
 
     public List<Trajet> rechercherTrajetsDisponibles(String lieuDepart, String lieuArrivee, LocalDateTime dateMin) {
-        return trajetDAO.findByLieuDepartAndLieuArrivee(lieuDepart, lieuArrivee).stream()
+        // Utiliser une approche plus flexible en récupérant tous les trajets
+        // puis en filtrant manuellement
+        return trajetDAO.findAll().stream()
+                .filter(trajet -> trajet.getLieuDepart().trim().toLowerCase().equalsIgnoreCase(lieuDepart.trim().toLowerCase()))
+                .filter(trajet -> trajet.getLieuArrivee().trim().toLowerCase().equalsIgnoreCase(lieuArrivee.trim().toLowerCase()))
                 .filter(trajet -> !trajet.isEstAnnule())
                 .filter(trajet -> trajet.getDateDepart().isAfter(dateMin))
                 .filter(trajet -> trajet.calculerPlacesRestantes() > 0)

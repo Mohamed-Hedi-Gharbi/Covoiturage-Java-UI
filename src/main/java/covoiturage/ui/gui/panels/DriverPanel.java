@@ -1,6 +1,7 @@
 package covoiturage.ui.gui.panels;
 
 import covoiturage.model.Conducteur;
+import covoiturage.model.Reservation;
 import covoiturage.model.Trajet;
 import covoiturage.service.ServiceFactory;
 import covoiturage.ui.gui.MainFrame;
@@ -17,6 +18,7 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -574,7 +576,7 @@ public class DriverPanel extends JPanel {
                     String statut = (String) model.getValueAt(reservationsTable.getSelectedRow(), 5);
 
                     // Activer/désactiver les boutons en fonction du statut
-                    boolean enAttente = statut.equals("En attente");
+                    boolean enAttente = statut.equals("EN_ATTENTE");
                     acceptButton.setEnabled(enAttente);
                     rejectButton.setEnabled(enAttente);
                 } else {
@@ -608,10 +610,34 @@ public class DriverPanel extends JPanel {
         panel.add(actionsPanel, BorderLayout.SOUTH);
 
         // Charger les réservations
-        // Ce code est à compléter avec l'appel au service approprié
+        List<Trajet> trajetsConducteur = ServiceFactory.getConducteurService().getTrajetsByConducteur(conducteur.getId());
+        List<Reservation> reservations = new ArrayList<>();
+
+        // Collecter toutes les réservations pour les trajets du conducteur
+        for (Trajet trajet : trajetsConducteur) {
+            List<Reservation> reservationsTrajet = ServiceFactory.getReservationService().getReservationsByTrajet(trajet.getId());
+            reservations.addAll(reservationsTrajet);
+        }
+
+        // Remplir le modèle de tableau avec les réservations
+        for (Reservation reservation : reservations) {
+            String trajetInfo = reservation.getTrajet().getLieuDepart() + " → " + reservation.getTrajet().getLieuArrivee();
+            String dateTrajet = reservation.getTrajet().getDateDepart().format(formatter);
+            String passagerInfo = reservation.getUtilisateur().getPrenom() + " " + reservation.getUtilisateur().getNom();
+
+            model.addRow(new Object[]{
+                    reservation.getId(),
+                    trajetInfo,
+                    dateTrajet,
+                    passagerInfo,
+                    reservation.getNbPlaces(),
+                    reservation.getStatut().toString()
+            });
+        }
 
         return panel;
     }
+
 
     private void refreshReservationsPanel() {
         // Actualiser et afficher le panel des réservations
